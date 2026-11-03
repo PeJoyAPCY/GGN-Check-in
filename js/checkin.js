@@ -1,7 +1,7 @@
 // ==================================================
 // GGN CHECK-IN
 // CHECKIN.JS
-// Version 3.3
+// Version 3.4
 //
 // หน้าที่:
 // - Check-in
@@ -97,6 +97,10 @@ async function initializeCheckin() {
 
   let isSending =
     false;
+
+  // Reuse the same id if the browser request fails and the user retries
+  // the unchanged form. Backend uses this as the Attendance/Queue idempotency key.
+  let pendingRecordId = "";
 
 
   // ==================================================
@@ -1056,7 +1060,16 @@ async function initializeCheckin() {
       // PAYLOAD
       // ==================================================
 
+      if (!pendingRecordId) {
+        pendingRecordId = (window.crypto && window.crypto.randomUUID)
+          ? window.crypto.randomUUID()
+          : "GGN-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+      }
+
       const payload = {
+
+        recordId:
+          pendingRecordId,
 
         action:
           "checkin",
@@ -1222,6 +1235,8 @@ async function initializeCheckin() {
 
   function resetForm() {
 
+    pendingRecordId = "";
+
     fullname.value =
       "";
 
@@ -1254,6 +1269,16 @@ async function initializeCheckin() {
     "click",
     sendData
   );
+
+  fullname.addEventListener("input", function() {
+    pendingRecordId = "";
+  });
+
+  if (imageInput) {
+    imageInput.addEventListener("change", function() {
+      pendingRecordId = "";
+    });
+  }
 
 
   // ==================================================

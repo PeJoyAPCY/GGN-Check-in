@@ -2,7 +2,7 @@
 // ==================================================
 // GGN CHECK-IN
 // CHECKOUT.JS
-// Version 3.3
+// Version 3.4
 //
 // หน้าที่:
 // - Check-out
@@ -60,6 +60,11 @@ async function initializeCheckout() {
     return;
 
   }
+
+
+  // Reuse the same id if the browser request fails and the user retries
+  // the unchanged form. Backend uses this as the Attendance/Queue idempotency key.
+  let pendingRecordId = "";
 
 
   // ==================================================
@@ -604,7 +609,16 @@ async function initializeCheckout() {
       // PAYLOAD
       // ==================================================
 
+      if (!pendingRecordId) {
+        pendingRecordId = (window.crypto && window.crypto.randomUUID)
+          ? window.crypto.randomUUID()
+          : "GGN-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+      }
+
       const payload = {
+
+        recordId:
+          pendingRecordId,
 
         action:
           "checkout",
@@ -758,6 +772,8 @@ async function initializeCheckout() {
 
   function resetForm() {
 
+    pendingRecordId = "";
+
     fullname.value =
       "";
 
@@ -775,6 +791,10 @@ async function initializeCheckout() {
     "click",
     sendData
   );
+
+  fullname.addEventListener("input", function() {
+    pendingRecordId = "";
+  });
 
 
   // ==================================================
